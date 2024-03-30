@@ -2,24 +2,24 @@ import bcrypt from "bcryptjs";
 import asyncHandler from "express-async-handler";
 import createError from "http-errors";
 import User from "../models/user.model.js";
-import getHumanDiff from "../utils/getHumanDiff.js";
+// import getHumanDiff from "../utils/getHumanDiff.js";
 
 const userController = {
   // Get all users
   getUsers: asyncHandler(async (req, res) => {
     const users = await User.find();
-    res.json(users);
+    if (!users) throw createError(404, "No User found!");
+
+    res.json({ users });
   }),
 
   // Get a specific user
   getUser: asyncHandler(async (req, res) => {
     const { userId } = req.params;
     const user = await User.findById(userId);
-    if (!user) {
-      throw createError(404, "User not found");
-    }
-    const lastLoginHumanDiff = getHumanDiff(new Date(user.lastLogin));
-    res.json({ lastLoginHumanDiff, user });
+    if (!user) throw createError(404, "User not found");
+
+    res.json({ user });
   }),
 
   // Get a user profile by username
@@ -28,23 +28,22 @@ const userController = {
     const user = await User.findOne({ username }).select(
       "-password -updatedAt"
     );
-    if (!user) {
-      throw createError(404, "User not found");
-    }
+    if (!user) throw createError(404, "User not found");
+
     res.json({ user });
   }),
 
   // Update a user
   updateUser: asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    const currentUserId = req.user.id;
+    const currentUserId = req.user._id.toString();
 
-    if (userId !== currentUserId) {
+    if (userId !== currentUserId)
       throw createError(
         403,
         "Forbidden request. You can't update other user's profile!"
       );
-    }
+
     let { name, username, email, password, profilePic, bio } = req.body;
     // if (password) password = await bcrypt.hash(password, 10);
     // The pre "findOneAndUpdate" middleware will be used to hash the password in the user model.
@@ -54,20 +53,21 @@ const userController = {
       { $set: { name, username, email, password, profilePic, bio } },
       { new: true }
     );
-    if (!updatedUser) {
-      throw createError(404, "User not found");
-    }
+    if (!updatedUser) throw createError(404, "User not found");
+
     res.json(updatedUser);
   }),
 
   // Delete a user
   deleteUser: asyncHandler(async (req, res) => {
     const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) throw createError(404, "User not found");
+    const currentUser = req.user._id;
+    if (currentUser.toString() !== user._id.toString())
+      throw createError(403, "Forbidden action!");
     const deletedUser = await User.findByIdAndDelete(userId);
-    if (!deletedUser) {
-      throw createError(404, "User not found");
-    }
-    res.json({ message: "User deleted successfully" });
+    res.json({ message: "User deleted successfully", user: deletedUser });
   }),
 
   // Follow - Unfollow a user
@@ -75,18 +75,15 @@ const userController = {
     const { userId } = req.params;
     const currentUserId = req.user.id;
 
-    if (userId === currentUserId) {
+    if (userId === currentUserId)
       throw createError(
         400,
         "Bad request. You can't follow/unfollow yourself!"
       );
-    }
 
     const currentUser = await User.findById(currentUserId);
     const userToFollow = await User.findById(userId);
-    if (!currentUser || !userToFollow) {
-      throw createError(404, "User not found");
-    }
+    if (!currentUser || !userToFollow) throw createError(404, "User not found");
 
     const isFollowing = currentUser.following.includes(userId);
     if (isFollowing) {

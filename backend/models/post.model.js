@@ -1,4 +1,14 @@
 import mongoose from "mongoose";
+import validate from "mongoose-validator";
+import getHumanDiff from "../utils/getHumanDiff.js";
+
+var textValidator = [
+  validate({
+    validator: "isLength",
+    arguments: [3, 500],
+    message: "Post should be between {ARGS[0]} and {ARGS[1]} characters",
+  }),
+];
 
 const postSchema = new mongoose.Schema(
   {
@@ -9,14 +19,18 @@ const postSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      maxLength: 500,
+      // minLength: 3,
+      // maxLength: 500,
+      validate: textValidator,
+      required: true,
     },
     img: {
       type: String,
     },
     likes: {
-      type: Number,
-      default: 0,
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
     },
     replies: [
       {
@@ -37,9 +51,6 @@ const postSchema = new mongoose.Schema(
         },
       },
     ],
-    lastUpdate: {
-      type: Date,
-    },
   },
   {
     // timestamps: { currentTime: () => new Date() },
@@ -48,11 +59,15 @@ const postSchema = new mongoose.Schema(
   }
 );
 
-// Update the last update timestamp
-postSchema.methods.updateLastUpdate = async function () {
-  this.lastUpdate = new Date();
-  await this.save();
-};
+// Virtual field for the createdAt As Human Diff
+postSchema.virtual("createdAtAsHumanDiff").get(function () {
+  return getHumanDiff(new Date(this.createdAt));
+});
+
+// Virtual field for the updatedAt As Human Diff
+postSchema.virtual("updatedAtAsHumanDiff").get(function () {
+  return getHumanDiff(new Date(this.updatedAt));
+});
 
 const Post = mongoose.model("Post", postSchema);
 

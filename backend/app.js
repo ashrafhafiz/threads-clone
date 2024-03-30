@@ -7,8 +7,9 @@ import cookieParser from "cookie-parser";
 // import { readdirSync } from "fs";
 import createError from "http-errors";
 
-import userRouter from "./routes/user.routes.js";
 import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
+import postRouter from "./routes/post.routes.js";
 
 const allowedOrigins = ["https://localhost:3000"];
 
@@ -37,8 +38,7 @@ app.use(cookieParser());
 //   )
 // );
 // Dynamic import in not working as excepted
-app.use("/api/v1", authRouter);
-app.use("/api/v1", userRouter);
+app.use("/api/v1", [authRouter, userRouter, postRouter]);
 
 // Handling 404 errors
 app.use((req, res, next) => {

@@ -12,9 +12,7 @@ const authController = {
 
     // Check if the user already exists
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw createError(409, "User already exists");
-    }
+    if (existingUser) throw createError(409, "User already exists");
 
     // Create a new user
     const user = await User.create({
@@ -50,9 +48,8 @@ const authController = {
       password,
       user?.password || ""
     );
-    if (!user || !isPasswordValid) {
+    if (!user || !isPasswordValid)
       throw createError(401, "Invalid Credentials!");
-    }
 
     // Generate a JWT token
     const token = generateTokenAndSetCookie(user._id, res);
@@ -73,14 +70,13 @@ const authController = {
   // signout == logout an existing user
   signout: asyncHandler(async (req, res) => {
     const token = req.cookies.jwt;
-    if (!token) {
-      throw createError(401, "No user is signed in. Please signin!");
-    }
+    if (!token) throw createError(401, "No user is signed in. Please signin!");
+
     const payload = jwt.decode(token);
 
-    if (Date.now() >= payload.exp * 1000) {
+    if (Date.now() >= payload.exp * 1000)
       throw createError(401, "Token is expried. Please signin!");
-    }
+
     const loggedInUser = await User.findOne({ _id: payload.userId });
     // res.cookie("jwt", "", { maxAge: 1 });
 

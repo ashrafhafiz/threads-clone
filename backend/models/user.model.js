@@ -56,7 +56,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Virtual field for the full name
+// Virtual field for the lastLogin As Human Diff
 userSchema.virtual("lastLoginAsHumanDiff").get(function () {
   if (!this.lastLogin) return "NA";
   return getHumanDiff(new Date(this.lastLogin));
